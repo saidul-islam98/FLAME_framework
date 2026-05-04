@@ -232,17 +232,24 @@ Example `verification_stats.json`:
       "task_batch_id": "chapter_001_medium_Apply",
       "attempt_index": 0,
       "attempt_human": "1/4",
+      "chapter_id": "chapter_001",
+      "chapter_relpath": "chapter_001.txt",
       "blueprint_key": "medium_Apply",
       "difficulty": "medium",
       "blooms_level": "Apply",
-      "candidate_label": "SeedGeneration 1/4 SeedCandidate",
-      "verification_report": {
+      "question_index_in_batch": 0,
+      "seed_generation_index": 1,
+      "seed_generation_target": 1,
+      "candidate_origin": "seed",
+      "is_seed_task": true,
+      "candidate_index_within_seed": 0,
+      "candidate_total_within_seed": 1,
+      "summary": {
+        "overall_verdict": "Pass",
         "json_format_valid": "Yes",
         "mcq_integrity": "Yes",
         "blooms_alignment": "Yes",
-        "constraint_compliance": "Yes",
-        "overall_verdict": "Pass",
-        "explanation": "The candidate is valid, self-contained, and aligned with the requested Bloom's level."
+        "constraint_compliance": "Yes"
       }
     }
   ]
