@@ -1,0 +1,30 @@
+Chapter 1: Foundations of Model Evaluation
+
+This sample chapter is intentionally synthetic and anonymous. It exists only so
+the standalone task-generation runner has a default text source to process.
+
+An evaluation pipeline compares a model prediction with a reference answer and
+assigns a score based on explicit criteria. A useful evaluation task should be
+self-contained, unambiguous, and tied to a measurable skill. The task statement
+should provide all assumptions needed by the solver, while avoiding unnecessary
+details that do not affect the answer.
+
+For classification tasks, common metrics include accuracy, precision, recall,
+and F1 score. Accuracy measures the fraction of all predictions that are
+correct. Precision measures the fraction of predicted positive examples that
+are truly positive. Recall measures the fraction of true positive examples that
+were successfully predicted as positive. The F1 score is the harmonic mean of
+precision and recall, so it is high only when both precision and recall are
+high.
+
+When a dataset is imbalanced, accuracy can be misleading. For example, if only
+one percent of examples are positive, a classifier that always predicts the
+negative class can achieve high accuracy while having zero recall for the
+positive class. In such settings, precision, recall, and F1 score often provide
+more informative evidence about model behavior.
+
+A strong evaluation item should make the solver reason from the definitions,
+not merely recognize a keyword. For instance, a question can provide a confusion
+matrix and ask which metric changes under a proposed intervention. The correct
+answer should follow from the definitions, and each distractor should reflect a
+plausible but incorrect interpretation.

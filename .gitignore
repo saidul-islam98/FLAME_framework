@@ -1,0 +1,39 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.env
+*.env
+.venv/
+venv/
+env/
+
+# Local editor/OS files
+.DS_Store
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Generated task-generation outputs
+base_output/
+outputs/
+logs/
+src/task_generation/logs/
+
+# Runtime artifacts
+*.log
+checkpoints/
+embedding_cache.json
+token_stats.json
+verification_stats.json
+dedup_report.json
+discarded_tasks.json

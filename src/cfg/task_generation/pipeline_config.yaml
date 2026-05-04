@@ -1,0 +1,30 @@
+pipeline:
+  # Experiment identifier - used to name output folders - required by runner
+  # Used by `python -m src.task_generation.runner`.
+  experiment_id: "test_exp"
+  output_base_dir: "base_output"         # folder where outputs are written
+
+  # Chapter corpus root (relative to repo root)
+  # runner expects: <book_chapter_dir>/**.txt
+  book_chapter_dir: "sample_chapter_text_files"
+
+  # Blueprints file (relative to cfg/)
+  blueprints_file: "blueprints.json"
+
+  # The standalone runner creates placeholder Domain, Area, and Capability
+  # objects directly from each chapter file. No previous capability-generation
+  # artifacts are required.
+
+  # Loop constraints
+  max_retries: 3
+
+  # Default tasks per combo (can be overridden by each combo's "num_tasks" in blueprints.json)
+  num_tasks_per_combo: 1
+
+  # Checkpoint configuration for incremental save/resume within a chapter run
+  checkpoint:
+    enabled: true
+    resume_from_checkpoint: true
+    every: 1
+    dir_name: "checkpoints"
+    file_name: "passed_tasks_checkpoint.json"

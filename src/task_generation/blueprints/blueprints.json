@@ -1,0 +1,25 @@
+{
+  "domain": "Machine Learning",
+  "combinations": [
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Apply - Use knowledge or methods in new but familiar situations. Example verbs: calculate, demonstrate, use, implement.",
+      "num_tasks": 10
+    },
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Analyze - Break information into parts and examine relationships or patterns. Example verbs: differentiate, compare, examine, infer.",
+      "num_tasks": 10
+    },
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Evaluate - Make judgments based on criteria and standards. Example verbs: justify, critique, assess, argue.",
+      "num_tasks": 10
+    },
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Create - Combine elements to form a new pattern, structure, or product. Example verbs: design, compose, formulate, generate.",
+      "num_tasks": 10
+    }
+  ]
+}

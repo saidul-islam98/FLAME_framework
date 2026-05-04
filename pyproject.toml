@@ -1,0 +1,54 @@
+[project]
+name = "standalone_task_generation"
+description = "Standalone pipeline for generating LLM evaluation tasks from source text"
+license = "Apache-2.0"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dynamic = ["version"]
+dependencies = [
+    "anthropic>=0.64.0",
+    "autogen-core>=0.7.4",
+    "autogen-ext[anthropic,openai]>=0.7.4",
+    "openai>=1.102.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.0",
+]
+
+[tool.poetry]
+package-mode = false
+version = "0.1"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+anthropic = ">=0.64.0"
+autogen-core = ">=0.7.4"
+autogen-ext = { version = ">=0.7.4", extras = ["anthropic", "openai"] }
+openai = ">=1.102.0"
+python-dotenv = ">=1.0.0"
+pyyaml = ">=6.0.0"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.11.4,<0.13.0"
+
+[tool.ruff]
+include = ["*.py", "pyproject.toml"]
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[build-system]
+requires = ["poetry-core>=2.0.1"]
+build-backend = "poetry.core.masonry.api"

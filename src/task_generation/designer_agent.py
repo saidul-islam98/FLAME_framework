@@ -1,0 +1,336 @@
+"""Source file for the designer agent used in task generation and revision."""
+
+import logging
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
+from src.schemas.task_gen_io_utils import strip_agent_terminator
+from src.task_generation.json_response_utils import (
+    normalize_reply_to_text,
+    parse_json_like,
+)
+from src.task_generation.prompts import (
+    DIFFICULTY_AND_BLOOMS_GUIDANCE,
+    INCLUDE_CLARIFICATION_PROMPT,
+    REMOVE_REDUNDANT_INFO_PROMPT,
+    REMOVE_SOURCE_INFO_PROMPT,
+    SOUNDNESS_CHECK_PROMPT,
+    SYSTEM_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT,
+    SYSTEM_GRAPH_TASK_GENERATION_PROMPT,
+    SYSTEM_GRAPH_TASK_GENERATION_PROMPT_UNIQUE,
+    SYSTEM_TASK_REVISION_PROMPT_JSON_ONLY,
+    SYSTEM_TASK_REVISION_PROMPT_MCQ_FIX,
+    USER_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT,
+    USER_GRAPH_TASK_GENERATION_PROMPT,
+    USER_GRAPH_TASK_GENERATION_PROMPT_UNIQUE,
+    USER_TASK_REVISION_PROMPT_JSON_ONLY,
+    USER_TASK_REVISION_PROMPT_MCQ_FIX,
+)
+from src.utils.model_client_utils import (
+    ModelCallMode,
+    TextWithUsage,
+    async_call_model,
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+class DesignerAgent:
+    """Designer agent for task generation and revision."""
+
+    def __init__(
+        self,
+        name: str,
+        model_client: Any,
+        **kwargs: Any,
+    ) -> None:
+        self.name = name
+        self.model_client = model_client
+
+    async def generate_draft(
+        self,
+        chapter_excerpts: str,
+        chapter_knowledge_text: str,
+        difficulty: str,
+        blooms_level: str,
+        previous_questions: Optional[List[str]] = None,
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
+        """
+        Generate draft tasks based on the provided blueprint and context.
+
+        Now includes `chapter_knowledge_text` (structured summary) in the prompt.
+
+        Args:
+            chapter_excerpts: Relevant excerpts from the chapter.
+            chapter_knowledge_text: Structured knowledge about the chapter.
+            previous_questions: List of previously generated questions for the chapter.
+
+        Returns
+        -------
+            A tuple containing the generated tasks and the full prompt used
+        """
+        # Normalize (avoid None / huge whitespace)
+        chapter_knowledge_text = (chapter_knowledge_text or "").strip()
+        chapter_excerpts = (chapter_excerpts or "").strip()
+
+        if previous_questions:
+            previous_questions_str = "\n".join(f"- {q}" for q in previous_questions)
+            difficulty_and_blooms_guidance = DIFFICULTY_AND_BLOOMS_GUIDANCE.format(
+                difficulty=(difficulty or "").strip(),
+                blooms_level=(blooms_level or "").strip(),
+            )
+            user_prompt = USER_GRAPH_TASK_GENERATION_PROMPT_UNIQUE.format(
+                difficulty_and_blooms_guidance=difficulty_and_blooms_guidance,
+                chapter_excerpts=chapter_excerpts,
+                chapter_knowledge_text=chapter_knowledge_text,
+                difficulty=difficulty,
+                blooms_level=blooms_level,
+                previous_questions=previous_questions_str,
+            )
+            task = SYSTEM_GRAPH_TASK_GENERATION_PROMPT_UNIQUE + "\n\n" + user_prompt
+        else:
+            difficulty_and_blooms_guidance = DIFFICULTY_AND_BLOOMS_GUIDANCE.format(
+                difficulty=(difficulty or "").strip(),
+                blooms_level=(blooms_level or "").strip(),
+            )
+            user_prompt = USER_GRAPH_TASK_GENERATION_PROMPT.format(
+                difficulty_and_blooms_guidance=difficulty_and_blooms_guidance,
+                chapter_excerpts=chapter_excerpts,
+                chapter_knowledge_text=chapter_knowledge_text,
+                difficulty=difficulty,
+                blooms_level=blooms_level,
+            )
+            task = SYSTEM_GRAPH_TASK_GENERATION_PROMPT + "\n\n" + user_prompt
+
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_message_content(result["content"]),
+            task,
+            dict(result["usage"]),
+        )
+
+    async def summarize_chapter_knowledge(
+        self,
+        chapter_excerpts: str,
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
+        """
+        Summarize chapter knowledge from provided excerpts.
+
+        Args:
+            chapter_excerpts: Relevant excerpts from the chapter.
+
+        Returns
+        -------
+            A tuple containing the summarized chapter knowledge and the prompt used.
+        """
+        task = (
+            SYSTEM_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT
+            + "\n\n"
+            + USER_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT.format(
+                chapter_excerpts=chapter_excerpts
+            )
+        )
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_message_content(result["content"]),
+            task,
+            dict(result["usage"]),
+        )
+
+    async def include_clarification_info(
+        self, candidate_question: str
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
+        """
+        Include clarification information in candidate problem.
+
+        Args:
+            candidate_question: The candidate problem to process.
+
+        Returns
+        -------
+            A tuple containing the processed problems and the full prompt used.
+        """
+        task = INCLUDE_CLARIFICATION_PROMPT.format(
+            candidate_question=candidate_question,
+        )
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_message_content(result["content"]),
+            task,
+            dict(result["usage"]),
+        )
+
+    async def remove_redundant_info(
+        self, candidate_question: str
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
+        """
+        Remove redundant information from candidate problem.
+
+        Args:
+            candidate_question: The candidate problem to process.
+
+        Returns
+        -------
+            A tuple containing the processed problems and the full prompt used.
+        """
+        task = REMOVE_REDUNDANT_INFO_PROMPT.format(
+            candidate_question=candidate_question,
+        )
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_message_content(result["content"]),
+            task,
+            dict(result["usage"]),
+        )
+
+    async def remove_references(
+        self, candidate_question: str
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
+        """
+        Remove reference to chapter excerpts from candidate problem.
+
+        Args:
+            candidate_question: The candidate problem to process.
+
+        Returns
+        -------
+            A tuple containing the processed problems and the full prompt used.
+        """
+        task = REMOVE_SOURCE_INFO_PROMPT.format(
+            candidate_question=candidate_question,
+        )
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_message_content(result["content"]),
+            task,
+            dict(result["usage"]),
+        )
+
+    async def check_soundness(
+        self, candidate_question: str
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
+        """
+        Check the soundness of a candidate question.
+
+        Args:
+            candidate_question: The candidate problem to process.
+
+        Returns
+        -------
+            A tuple containing the processed problems and the full prompt used.
+        """
+        task = SOUNDNESS_CHECK_PROMPT.format(
+            candidate_question=candidate_question,
+        )
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_message_content(result["content"]),
+            task,
+            dict(result["usage"]),
+        )
+
+    async def fix_mcq_with_trace(
+        self,
+        previous_candidate_output: str,
+        verifier_feedback: str,
+        chapter_material: str,
+        chapter_knowledge_text: str,
+        difficulty: str,
+        blooms_level: str,
+        solution_trace: str,
+        previous_questions: List[str],
+    ) -> Tuple[Union[Dict[str, Any], str], Dict[str, Any]]:
+        """Fix the MCQ question based on the verifier feedback and solution trace.
+
+        Args:
+            previous_candidate_output: The previous candidate question output.
+            verifier_feedback: The feedback from the verifier agent.
+            chapter_material: The relevant chapter material.
+            chapter_knowledge_text: The relevant chapter knowledge.
+            solution_trace: The solution trace.
+            previous_questions: A list of previously generated questions.
+
+        Returns
+        -------
+            A dictionary containing the revised question or an error message.
+        """
+        previous_questions_str = "\n".join(f"- {q}" for q in previous_questions)
+        difficulty_and_blooms_guidance = DIFFICULTY_AND_BLOOMS_GUIDANCE.format(
+            difficulty=(difficulty or "").strip(),
+            blooms_level=(blooms_level or "").strip(),
+        )
+        user_prompt = USER_TASK_REVISION_PROMPT_MCQ_FIX.format(
+            previous_candidate_output=previous_candidate_output,
+            verifier_llm_feedback=verifier_feedback,
+            difficulty_and_blooms_guidance=difficulty_and_blooms_guidance,
+            chapter_material=chapter_material,
+            chapter_knowledge_text=chapter_knowledge_text,
+            difficulty=(difficulty or "").strip(),
+            blooms_level=(blooms_level or "").strip(),
+            solution_trace=solution_trace,
+            previous_questions=previous_questions_str,
+        )
+        task = SYSTEM_TASK_REVISION_PROMPT_MCQ_FIX + "\n\n" + user_prompt
+        result = await self._call_text_prompt(task)
+        return self._extract_message_content(result["content"]), dict(result["usage"])
+
+    async def fix_json_format_only(
+        self,
+        previous_candidate_output: str,
+        verifier_feedback: str,
+    ) -> Tuple[Union[Dict[str, Any], str], Dict[str, Any]]:
+        """Fix the candidate output's JSON format based on the verifier feedback."""
+        user_prompt = USER_TASK_REVISION_PROMPT_JSON_ONLY.format(
+            previous_candidate_output=previous_candidate_output,
+            verifier_llm_feedback=verifier_feedback,
+        )
+        task = SYSTEM_TASK_REVISION_PROMPT_JSON_ONLY + "\n\n" + user_prompt
+        result = await self._call_text_prompt(task)
+        return self._extract_message_content(result["content"]), dict(result["usage"])
+
+    async def _call_text_prompt(self, task: str) -> TextWithUsage:
+        """Call the model in plain-text mode for a fully assembled prompt."""
+        response = await async_call_model(
+            self.model_client,
+            user_prompt=task,
+            mode=ModelCallMode.TEXT,
+            return_usage=True,
+        )
+        assert isinstance(response, dict)
+        return cast(TextWithUsage, response)
+
+    def _extract_message_content(  # noqa: PLR0911
+        self, reply: Union[str, Dict[str, Any], List[Any], None]
+    ) -> Union[Dict[str, Any], str]:
+        """
+        Extract content and attempt to parse JSON safely.
+
+        Handles common AutoGen return shapes:
+          - str
+          - dict with "content"
+          - list of messages (dicts), take the last
+          - nested dict-like shapes (best-effort)
+
+        Args:
+            reply: The raw reply from the agent.
+
+        Returns
+        -------
+            Parsed JSON object if successful, else raw string.
+        """
+        content = normalize_reply_to_text(reply)
+        content = strip_agent_terminator(content)
+        if not content:
+            return ""
+        parsed = parse_json_like(
+            content,
+            on_repair=lambda msg: logger.warning("Designer %s", msg),
+        )
+        if isinstance(parsed, dict):
+            return parsed
+
+        logger.warning(
+            "Failed to parse JSON from Designer output. Returning raw string. Preview=%r",
+            (content[:200] + "…") if len(content) > 200 else content,
+        )
+        return content
