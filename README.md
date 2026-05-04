@@ -149,6 +149,106 @@ embedding_cache.json
 checkpoints/
 ```
 
+Example `tasks.json`:
+
+```json
+{
+  "metadata": {
+    "experiment_id": "test_exp",
+    "output_base_dir": "base_output",
+    "timestamp": "2026-05-04T20:00:00Z",
+    "input_stage_tag": "chapter_placeholders",
+    "output_stage_tag": "_20260504_200000",
+    "resume": false
+  },
+  "tasks": [
+    {
+      "task_id": "task_chapter_001_000001",
+      "task_statement": "A binary classifier is evaluated on an imbalanced dataset. Which metric best captures the fraction of true positive examples that were predicted positive?",
+      "task_type": "multiple_choice",
+      "solution_type": "multiple_choice",
+      "difficulty": "medium",
+      "bloom_level": "Apply",
+      "choices": [
+        { "label": "A", "solution": "Accuracy" },
+        { "label": "B", "solution": "Precision" },
+        { "label": "C", "solution": "Recall" },
+        { "label": "D", "solution": "F1 score" },
+        { "label": "E", "solution": "None of the above" }
+      ],
+      "capability_id": "cap_ch_chapter_001_00000000",
+      "capability_name": "placeholder_capability_chapter_001",
+      "area_id": "area_ch_chapter_001_00000000",
+      "area_name": "placeholder_area_chapter_001",
+      "domain_id": "domain_000",
+      "domain_name": "evaluation",
+      "generation_metadata": {
+        "correct_answer": "C",
+        "source_chapter_id": "chapter_001",
+        "capability_source_mode": "chapter_placeholder",
+        "solution_graph": {
+          "nodes": [
+            {
+              "id": "V1",
+              "content": "Recall is defined as the fraction of true positive examples that are predicted positive."
+            },
+            {
+              "id": "V2",
+              "content": "The task asks for the metric matching that definition."
+            }
+          ],
+          "edges": [
+            {
+              "from": "V1",
+              "to": "V2",
+              "operation": "Match the metric definition to the requested quantity."
+            }
+          ]
+        },
+        "solution_steps": [
+          "Identify the quantity in the question: true positive examples predicted positive.",
+          "Compare that quantity with the metric definitions.",
+          "Select recall because it uses true positives divided by all actual positives."
+        ],
+        "complete_solution": "Recall measures the fraction of actual positive examples that were predicted positive, so the correct answer is C."
+      }
+    }
+  ]
+}
+```
+
+Example `verification_stats.json`:
+
+```json
+{
+  "chapter_id": "chapter_001",
+  "chapter_relpath": "chapter_001.txt",
+  "book_name": "root_corpus",
+  "capability_id": "cap_ch_chapter_001_00000000",
+  "area_id": "area_ch_chapter_001_00000000",
+  "num_verifier_calls": 1,
+  "verification_logs": [
+    {
+      "task_batch_id": "chapter_001_medium_Apply",
+      "attempt_index": 0,
+      "attempt_human": "1/4",
+      "blueprint_key": "medium_Apply",
+      "difficulty": "medium",
+      "blooms_level": "Apply",
+      "candidate_label": "SeedGeneration 1/4 SeedCandidate",
+      "verification_report": {
+        "json_format_valid": "Yes",
+        "mcq_integrity": "Yes",
+        "blooms_alignment": "Yes",
+        "constraint_compliance": "Yes",
+        "overall_verdict": "Pass",
+        "explanation": "The candidate is valid, self-contained, and aligned with the requested Bloom's level."
+      }
+    }
+  ]
+}
+```
+
 ## Placeholder Metadata
 
 The runner creates schema-compatible placeholder metadata directly from each

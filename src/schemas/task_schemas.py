@@ -1,4 +1,4 @@
-"""Schemas for task generation stage (Stage 3).
+"""Schemas for task generation stage.
 
 Defines Task dataclass for task. Tasks are concrete evaluation items
 that test a capability.

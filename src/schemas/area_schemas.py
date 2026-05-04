@@ -1,4 +1,4 @@
-"""Schemas for area generation stage (Stage 1).
+"""Schemas for area generation stage.
 
 Defines Area dataclass for domain area. Areas are high-level categories
 within a domain.
